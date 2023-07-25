@@ -2,27 +2,21 @@
 # Requires requests module for HTTP requests - pip install requests
 
 import requests
-from datetime import datetime, timedelta, date
 import sys
-import csv
-from csv import writer
 import pandas as pd
 
+from datetime import datetime, timedelta, date
 from epcpy.epc_schemes import SGTIN, sgtin
 
-BASE_URL = 'https://eu.crave-cloud.com'
 API_KEY = '##API_KEY_HERE##'
 HEADERS = {'Authorization': f'api-token {API_KEY}',
            'Content-Type': 'application/json'}
 START_DATE = (date.today() - timedelta(1)).strftime('%Y-%m-%d')  # Using yesterday's date, yyyy-MM-dd
 
-STORE_RESPONSE = requests.get(f'{BASE_URL}/store', headers=HEADERS).json()  # Fetching the Store Response
-STORE_IDS = [store['id'] for store in STORE_RESPONSE['data']]  # Store ID from the Store Response
-STORE_IDS.remove(12)  # Remove demo store
-
-BASE_URL_LIST = {'shopper': f'{BASE_URL}/v2/archive/shopper', 'item': f'{BASE_URL}/v2/archive/shopper_item',
-                 'requests': f'{BASE_URL}/v2/archive/request',
-                 'feedback': f'{BASE_URL}/v2/archive/feedback'}  # The different API URLS
+BASE_URL_LIST = {'shopper': '/v2/archive/shopper',
+                 'item': '/v2/archive/shopper_item',
+                 'requests': '/v2/archive/request',
+                 'feedback': '/v2/archive/feedback'}  # The different API URLS
 
 KEY_LIST = {
     'shopper': ['id', 'name', 'storeId', 'createdAt', 'itemCount', 'deletedAt', 'dwellMilliseconds', 'shopperId',
@@ -46,10 +40,21 @@ DEL_KEY_LIST = {'shopper': ['phoneNumber', 'engaged'],
 
 OPTION_MENU = ['shopper', 'item', 'requests', 'feedback']
 
-# Remove the following fields
-# Shopper: phoneNumber, engaged
-# Shopper Item: state
-# Feedback: planningPurchase, email, dwellMilliseconds, message
+REGION_LOOKUP = {
+    'na': 'https://na.crave-cloud.com',
+    'eu': 'https://eu.crave-cloud.com',
+    'china': 'https://api.crave-cloud.cn'
+}
+
+
+def get_stores(base_url):
+    store_response = requests.get(f'{base_url}/store', headers=HEADERS).json()
+    valid_stores = []
+    for store in store_response['data']:
+        if 'group' in store and store['group'] != 'DEMO':
+            valid_stores.append(store)
+    return valid_stores
+
 
 """
 * This is a helper function that requests the data from a given api URL, the requests is
@@ -80,12 +85,13 @@ def get_response(url, store_id, next_cursor):
 """
 
 
-def has_more_fun(store_id, fun_name):
+def has_more_fun(base_url, store_id, fun_name):
     has_more = True
     next_cursor = None
     shoppers = []
     while has_more:
-        response = get_response(BASE_URL_LIST[fun_name], store_id, next_cursor)
+        BASE_URL = base_url + BASE_URL_LIST[fun_name]
+        response = get_response(BASE_URL, store_id, next_cursor)
         if response['metadata']['code'] != 200:
             print(f'Error fetching shoppers. Error: {response["metadata"]["code"]} {response["metadata"]["message"]}')
             has_more = False
@@ -149,13 +155,15 @@ def to_csv(req_dict, fun_name):
 """
 
 
-def fetch_shopper():
+def fetch_shopper(base_url, store_ids):
+    print(f'Starting Shopper Export')
     shoppers_by_store = {}  # key = store_id, values = list of shoppers
-    for store_id in STORE_IDS:
-        print("Fetching store", store_id)
-        shoppers = has_more_fun(store_id, 'shopper')
+    for store_id in store_ids:
+        print(f'Fetching store {store_id}')
+        shoppers = has_more_fun(base_url, store_id, 'shopper')
         shoppers_by_store[store_id] = shoppers
     to_csv(shoppers_by_store, 'shopper')
+    print('Shopper Export Done')
 
 
 """ 
@@ -164,12 +172,15 @@ def fetch_shopper():
 """
 
 
-def fetch_shopper_item():
+def fetch_shopper_item(base_url, store_ids):
+    print(f'Starting Shopper Item Export')
     shopper_items_by_store = {}  # key = store_id, values = list of shopper items
-    for store_id in STORE_IDS:
-        shopper_items = has_more_fun(store_id, 'item')
+    for store_id in store_ids:
+        print(f'Fetching store {store_id}')
+        shopper_items = has_more_fun(base_url, store_id, 'item')
         shopper_items_by_store[store_id] = shopper_items
     to_csv(shopper_items_by_store, 'item')
+    print(f'Shopper Item Export Done')
 
 
 """
@@ -178,12 +189,15 @@ def fetch_shopper_item():
 """
 
 
-def fetch_archive_request():
+def fetch_archive_request(base_url, store_ids):
+    print(f'Starting Requests Export')
     requests_by_store = {}  # key = store_id, values = list of requests
-    for store_id in STORE_IDS:
-        shopper_requests = has_more_fun(store_id, 'requests')
+    for store_id in store_ids:
+        print(f'Fetching store {store_id}')
+        shopper_requests = has_more_fun(base_url, store_id, 'requests')
         requests_by_store[store_id] = shopper_requests
     to_csv(requests_by_store, 'requests')
+    print(f'Requests Export Done')
 
 
 """
@@ -192,57 +206,65 @@ def fetch_archive_request():
 """
 
 
-def fetch_archive_feedback():
+def fetch_archive_feedback(base_url, store_ids):
+    print(f'Starting Feedback Export')
     feedback_by_store = {}  # key = store_id, values = list of feedback
-    for store_id in STORE_IDS:
-        feedback = has_more_fun(store_id, 'feedback')
+    for store_id in store_ids:
+        print(f'Fetching store {store_id}')
+        feedback = has_more_fun(base_url, store_id, 'feedback')
         feedback_by_store[store_id] = feedback
     to_csv(feedback_by_store, 'feedback')
+    print(f'Feedback Export Done')
 
 
 if __name__ == '__main__':
-    flag_first = True
-    if len(sys.argv) == 1:
-        print("shopper done")
-        print("item done")
-        print("request done")
-        print("feedback done")
+    selected_region = ''
+    selected_stores = []
+
+    if len(sys.argv) < 2:
+        print('No region specified. Region must be one of: na, eu, or china')
     else:
-        for i in range(1, len(sys.argv)):
-            if flag_first == True:
-                try:
-                    START_DATE = datetime.strptime(sys.argv[i], "%Y-%m-%d")
-                    START_DATE = START_DATE.strftime("%Y-%m-%d")
-                    if (START_DATE > (date.today() - timedelta(1)).strftime('%Y-%m-%d')):
-                        print("Invalid Date, please input a date atleast yesterday")
-                        break
-                    print("Date Specified:", START_DATE)
-                    flag_first = False
-                    continue
-                except ValueError:
-                    if sys.argv[i] in OPTION_MENU:
-                        msg = "Date not specified"
-                        print(msg)
+        selected_region = sys.argv[1]
+        if selected_region not in REGION_LOOKUP:
+            print('Invalid region selected. Region must be one of: na, eu, or china')
+            sys.exit(-1)
+        else:
+            print(f'Selected Region: {selected_region}')
+            region_url = REGION_LOOKUP[selected_region]
+            selected_stores = get_stores(region_url)
+            print(f'Fetching data for stores: {selected_stores}')
+            flag_first = True
+            for i in range(2, len(sys.argv)):
+                if flag_first:
+                    try:
+                        START_DATE = datetime.strptime(sys.argv[i], "%Y-%m-%d")
+                        START_DATE = START_DATE.strftime("%Y-%m-%d")
+                        if START_DATE > (date.today() - timedelta(1)).strftime('%Y-%m-%d'):
+                            print('Invalid Date, please input a date at least yesterday or prior in format yyyy-MM-dd')
+                            break
+                        print(f'Date selected: {START_DATE}')
                         flag_first = False
-                    else:
-                        msg = "not a valid date: {0!r}".format(sys.argv[i])
-                        print(msg)
-                        flag_first = False
-                        break
-            if sys.argv[i] == 'shopper':
-                fetch_shopper()
-                print("shopper done")
-            elif sys.argv[i] == 'item':
-                fetch_shopper_item()
-                print("item done")
-            elif sys.argv[i] == 'requests':
-                fetch_archive_request()
-                print("requests done")
-            elif sys.argv[i] == 'feedback':
-                fetch_archive_feedback()
-                print("feedback done")
-            else:
-                print("Not a valid argument")
-                print("Valid arguments are: shopper, item, requests, feedback")
-                print("If you want to specify a date please enter the date first and then the requests")
+                        continue
+                    except ValueError:
+                        if sys.argv[i] in OPTION_MENU:
+                            print(f'Date not specified, defaulting start date to {START_DATE}')
+                            flag_first = False
+                        else:
+                            msg = f"'{sys.argv[i]}' not a valid date, please use format yyyy-MM-dd"
+                            print(msg)
+                            flag_first = False
+                            break
+                if sys.argv[i] == 'shopper':
+                    fetch_shopper(region_url, selected_stores)
+                elif sys.argv[i] == 'item':
+                    fetch_shopper_item(region_url, selected_stores)
+                elif sys.argv[i] == 'requests':
+                    fetch_archive_request(region_url, selected_stores)
+                elif sys.argv[i] == 'feedback':
+                    fetch_archive_feedback(region_url, selected_stores)
+                else:
+                    print('''
+                    Not a valid argument
+                    Valid arguments are: shopper, item, requests, feedback
+                    If you want to specify a date please enter the date first and then the requests''')
 
