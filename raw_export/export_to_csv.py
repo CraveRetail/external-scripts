@@ -51,19 +51,25 @@ def get_stores(base_url):
     store_response = requests.get(f'{base_url}/store', headers=HEADERS).json()
     valid_stores = []
     for store in store_response['data']:
-        if 'group' in store and store['group'] != 'DEMO':
+        if 'group' in store and store['group'] != 'DEMO' and store['group'] != 'TEST':
             valid_stores.append(store)
     return valid_stores
 
 
 """
 * This is a helper function that requests the data from a given api URL, the requests is
-* the requests is fitted with params specifically storeid and startdate
+* the requests is fitted with params specifically storeId and startDate
 * 
 * @param url This is a URL for a specific API used
 * @param next_cursor A cursor used to indicate the data being read 
 * @return response This is the response got from the requests 
 """
+
+
+def get_store_name(store):
+    if store is not None:
+        return store['name']
+    return None
 
 
 def get_response(url, store_id, next_cursor):
@@ -155,13 +161,13 @@ def to_csv(req_dict, fun_name):
 """
 
 
-def fetch_shopper(base_url, store_ids):
+def fetch_shopper(base_url, stores):
     print(f'Starting Shopper Export')
     shoppers_by_store = {}  # key = store_id, values = list of shoppers
-    for store_id in store_ids:
-        print(f'Fetching store {store_id}')
-        shoppers = has_more_fun(base_url, store_id, 'shopper')
-        shoppers_by_store[store_id] = shoppers
+    for store in stores:
+        print(f'Fetching shoppers for store {get_store_name(store)}')
+        shoppers = has_more_fun(base_url, store['id'], 'shopper')
+        shoppers_by_store[store['id']] = shoppers
     to_csv(shoppers_by_store, 'shopper')
     print('Shopper Export Done')
 
@@ -172,13 +178,13 @@ def fetch_shopper(base_url, store_ids):
 """
 
 
-def fetch_shopper_item(base_url, store_ids):
+def fetch_shopper_item(base_url, stores):
     print(f'Starting Shopper Item Export')
     shopper_items_by_store = {}  # key = store_id, values = list of shopper items
-    for store_id in store_ids:
-        print(f'Fetching store {store_id}')
-        shopper_items = has_more_fun(base_url, store_id, 'item')
-        shopper_items_by_store[store_id] = shopper_items
+    for store in stores:
+        print(f'Fetching shopper_items for store {get_store_name(store)}')
+        shopper_items = has_more_fun(base_url, store['id'], 'item')
+        shopper_items_by_store[store['id']] = shopper_items
     to_csv(shopper_items_by_store, 'item')
     print(f'Shopper Item Export Done')
 
@@ -189,13 +195,13 @@ def fetch_shopper_item(base_url, store_ids):
 """
 
 
-def fetch_archive_request(base_url, store_ids):
+def fetch_archive_request(base_url, stores):
     print(f'Starting Requests Export')
     requests_by_store = {}  # key = store_id, values = list of requests
-    for store_id in store_ids:
-        print(f'Fetching store {store_id}')
-        shopper_requests = has_more_fun(base_url, store_id, 'requests')
-        requests_by_store[store_id] = shopper_requests
+    for store in stores:
+        print(f'Fetching requests for store {get_store_name(store)}')
+        shopper_requests = has_more_fun(base_url, store['id'], 'requests')
+        requests_by_store[store['id']] = shopper_requests
     to_csv(requests_by_store, 'requests')
     print(f'Requests Export Done')
 
@@ -206,13 +212,13 @@ def fetch_archive_request(base_url, store_ids):
 """
 
 
-def fetch_archive_feedback(base_url, store_ids):
+def fetch_archive_feedback(base_url, stores):
     print(f'Starting Feedback Export')
     feedback_by_store = {}  # key = store_id, values = list of feedback
-    for store_id in store_ids:
-        print(f'Fetching store {store_id}')
-        feedback = has_more_fun(base_url, store_id, 'feedback')
-        feedback_by_store[store_id] = feedback
+    for store in stores:
+        print(f'Fetching feedback for store {get_store_name(store)}')
+        feedback = has_more_fun(base_url, store['id'], 'feedback')
+        feedback_by_store[store['id']] = feedback
     to_csv(feedback_by_store, 'feedback')
     print(f'Feedback Export Done')
 
@@ -232,7 +238,8 @@ if __name__ == '__main__':
             print(f'Selected Region: {selected_region}')
             region_url = REGION_LOOKUP[selected_region]
             selected_stores = get_stores(region_url)
-            print(f'Fetching data for stores: {selected_stores}')
+
+            print(f'Fetching data for stores: {list(map(get_store_name, selected_stores))}')
             flag_first = True
             for i in range(2, len(sys.argv)):
                 if flag_first:
@@ -267,4 +274,3 @@ if __name__ == '__main__':
                     Not a valid argument
                     Valid arguments are: shopper, item, requests, feedback
                     If you want to specify a date please enter the date first and then the requests''')
-

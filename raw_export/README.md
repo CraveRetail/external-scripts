@@ -7,9 +7,14 @@ This script requires python 3
 ```pip install -r requirements.txt```
 
 ## Usage
-This script has two inputs the start date and the data to fetch.
+This script has three inputs the region, start date and the data to fetch.
 
-The Date must be in yyyy-mm-dd format. The available items to fetch are `shopper` `item` `requests` `feedback`
+ 
+The Region must be one of `na` `eu` `china`
+
+The Date must be in yyyy-mm-dd format.
+
+The available data to fetch are `shopper` `item` `requests` `feedback`
  
 Sample Call
-``` python export_to_csv.py 2023-07-01 shopper item requests feedback```
+``` python export_to_csv.py eu 2023-07-01 shopper item requests feedback```
