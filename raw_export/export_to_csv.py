@@ -27,19 +27,22 @@ KEY_LIST = {
                  'assignedAt', 'completedAt', 'size', 'color', 'price', 'timeTaken', 'type', 'itemId', 'productId',
                  "originalRequestId", 'title', 'category'],
     'feedback': ['id', 'shopperName', 'rating', 'storeId', 'deviceRating', 'createdAt'],
-    'room': ['storeId', 'areaId', 'roomId', 'areaName', 'roomName']}
+    'room': ['storeId', 'areaId', 'roomId', 'areaName', 'roomName'],
+    'store': ['externalId', 'storeId', 'storeName']}
 
 O_FILE_NAME_LIST = {'shopper': 'shopper.csv',
                     'item': 'item.csv',
                     'requests': 'requests.csv',
                     'feedback': 'feedback.csv',
-                    'room': 'changingRoom.csv'}
+                    'room': 'changingRoom.csv',
+                    'store': 'store.csv'}
 
 DEL_KEY_LIST = {'shopper': ['phoneNumber', 'engaged'],
                 'item': ['state'],
                 'requests': [],
                 'feedback': ['planningPurchase', 'email', 'dwellMilliseconds', 'message'],
-                'room': []}
+                'room': [],
+                'store': []}
 
 OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'room']
 
@@ -261,8 +264,12 @@ if __name__ == '__main__':
             print(f'Selected Region: {selected_region}')
             region_url = REGION_LOOKUP[selected_region]
             selected_stores = get_stores(region_url)
-
+            store_lookup = {store['id']: [{'storeId': store['id'],
+                                           'externalId': store['externalId'],
+                                           'storeName': store['name']}] for store in selected_stores}
+            to_csv(store_lookup, 'store')
             print(f'Fetching data for stores: {list(map(get_store_name, selected_stores))}')
+
             flag_first = True
             for i in range(2, len(sys.argv)):
                 if flag_first:
