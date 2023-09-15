@@ -26,19 +26,25 @@ KEY_LIST = {
     'requests': ['id', 'status', 'createdBy', 'storeId', 'changingRoomId', 'assignedUserId', 'sku', 'createdAt',
                  'assignedAt', 'completedAt', 'size', 'color', 'price', 'timeTaken', 'type', 'itemId', 'productId',
                  "originalRequestId", 'title', 'category'],
-    'feedback': ['id', 'shopperName', 'rating', 'storeId', 'deviceRating', 'createdAt']}
+    'feedback': ['id', 'shopperName', 'rating', 'storeId', 'deviceRating', 'createdAt'],
+    'room': ['storeId', 'areaId', 'roomId', 'areaName', 'roomName'],
+    'store': ['externalId', 'storeId', 'storeName']}
 
 O_FILE_NAME_LIST = {'shopper': 'shopper.csv',
                     'item': 'item.csv',
                     'requests': 'requests.csv',
-                    'feedback': 'feedback.csv'}
+                    'feedback': 'feedback.csv',
+                    'room': 'changingRoom.csv',
+                    'store': 'store.csv'}
 
 DEL_KEY_LIST = {'shopper': ['phoneNumber', 'engaged'],
                 'item': ['state'],
                 'requests': [],
-                'feedback': ['planningPurchase', 'email', 'dwellMilliseconds', 'message']}
+                'feedback': ['planningPurchase', 'email', 'dwellMilliseconds', 'message'],
+                'room': [],
+                'store': []}
 
-OPTION_MENU = ['shopper', 'item', 'requests', 'feedback']
+OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'room']
 
 REGION_LOOKUP = {
     'na': 'https://na.crave-cloud.com',
@@ -223,6 +229,26 @@ def fetch_archive_feedback(base_url, stores):
     print(f'Feedback Export Done')
 
 
+def fetch_changing_rooms(base_url, stores):
+    print(f'Starting Changing Room Export')
+    changing_rooms_by_store = {}
+    for store in stores:
+        print(f'Fetching changing rooms for store {get_store_name(store)}')
+        areas = requests.get(f'{base_url}/changingRoomGroup/store/{store["id"]}', headers=HEADERS).json()['data']
+        all_rooms = []
+        for area in areas:
+            for room in area['changingRooms']:
+                room_view = {'storeId': store['id'],
+                             'areaId': area['changingRoomGroup']['id'],
+                             'roomId': room['id'],
+                             'areaName': area['changingRoomGroup']['name'],
+                             'roomName': room['name']}
+                all_rooms.append(room_view)
+        changing_rooms_by_store[store['id']] = all_rooms
+    to_csv(changing_rooms_by_store, 'room')
+    print('Changing Room Export Done')
+
+
 if __name__ == '__main__':
     selected_region = ''
     selected_stores = []
@@ -238,8 +264,12 @@ if __name__ == '__main__':
             print(f'Selected Region: {selected_region}')
             region_url = REGION_LOOKUP[selected_region]
             selected_stores = get_stores(region_url)
-
+            store_lookup = {store['id']: [{'storeId': store['id'],
+                                           'externalId': store['externalId'],
+                                           'storeName': store['name']}] for store in selected_stores}
+            to_csv(store_lookup, 'store')
             print(f'Fetching data for stores: {list(map(get_store_name, selected_stores))}')
+
             flag_first = True
             for i in range(2, len(sys.argv)):
                 if flag_first:
@@ -269,6 +299,8 @@ if __name__ == '__main__':
                     fetch_archive_request(region_url, selected_stores)
                 elif sys.argv[i] == 'feedback':
                     fetch_archive_feedback(region_url, selected_stores)
+                elif sys.argv[i] == 'room':
+                    fetch_changing_rooms(region_url, selected_stores)
                 else:
                     print('''
                     Not a valid argument
