@@ -242,7 +242,6 @@ def fetch_changing_rooms(base_url, stores):
                              'roomName': room['name']}
                 all_rooms.append(room_view)
         changing_rooms_by_store[store['id']] = all_rooms
-    print(changing_rooms_by_store)
     to_csv(changing_rooms_by_store, 'room')
     print('Changing Room Export Done')
 
