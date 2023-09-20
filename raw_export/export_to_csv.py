@@ -48,7 +48,7 @@ DEL_KEY_LIST = {'shopper': ['phoneNumber', 'engaged'],
                 'user': ['role', 'changingRoomGroupId', 'active', 'customerId', 'firstLogin', 'archived',
                          'lastLoggedIn', 'allowedStores']}
 
-OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'room']
+OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'room', 'user']
 
 REGION_LOOKUP = {
     'na': 'https://na.crave-cloud.com',
