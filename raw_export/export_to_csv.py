@@ -28,23 +28,27 @@ KEY_LIST = {
                  "originalRequestId", 'title', 'category'],
     'feedback': ['id', 'shopperName', 'rating', 'storeId', 'deviceRating', 'createdAt'],
     'room': ['storeId', 'areaId', 'roomId', 'areaName', 'roomName'],
-    'store': ['externalId', 'storeId', 'storeName']}
+    'store': ['externalId', 'storeId', 'storeName'],
+    'user': ['id', 'externalId', 'username', 'email', 'firstName', 'lastName']}
 
 O_FILE_NAME_LIST = {'shopper': 'shopper.csv',
                     'item': 'item.csv',
                     'requests': 'requests.csv',
                     'feedback': 'feedback.csv',
                     'room': 'changingRoom.csv',
-                    'store': 'store.csv'}
+                    'store': 'store.csv',
+                    'user': 'user.csv'}
 
 DEL_KEY_LIST = {'shopper': ['phoneNumber', 'engaged'],
                 'item': ['state'],
                 'requests': [],
                 'feedback': ['planningPurchase', 'email', 'dwellMilliseconds', 'message'],
                 'room': [],
-                'store': []}
+                'store': [],
+                'user': ['role', 'changingRoomGroupId', 'active', 'customerId', 'firstLogin', 'archived',
+                         'lastLoggedIn', 'allowedStores']}
 
-OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'room']
+OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'room', 'user']
 
 REGION_LOOKUP = {
     'na': 'https://na.crave-cloud.com',
@@ -249,6 +253,17 @@ def fetch_changing_rooms(base_url, stores):
     print('Changing Room Export Done')
 
 
+def fetch_users(base_url, stores):
+    print(f'Starting User Export')
+    users_by_store = {}
+    for store in stores:
+        print(f'Fetching users for store {get_store_name(store)}')
+        users = requests.get(f'{base_url}/user/', headers=HEADERS, params={'storeId': store["id"]}).json()['data']
+        users_by_store[store['id']] = users
+    to_csv(users_by_store, 'user')
+    print('User Export Done')
+
+
 if __name__ == '__main__':
     selected_region = ''
     selected_stores = []
@@ -301,6 +316,8 @@ if __name__ == '__main__':
                     fetch_archive_feedback(region_url, selected_stores)
                 elif sys.argv[i] == 'room':
                     fetch_changing_rooms(region_url, selected_stores)
+                elif sys.argv[i] == 'user':
+                    fetch_users(region_url, selected_stores)
                 else:
                     print('''
                     Not a valid argument
