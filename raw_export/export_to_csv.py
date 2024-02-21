@@ -258,7 +258,7 @@ def fetch_users(base_url, stores):
     users_by_store = {}
     for store in stores:
         print(f'Fetching users for store {get_store_name(store)}')
-        users = requests.get(f'{base_url}/user/', headers=HEADERS, params={'storeId': store["id"]}).json()['data']
+        users = requests.get(f'{base_url}/user', headers=HEADERS, params={'storeId': store["id"]}).json()['data']
         users_by_store[store['id']] = users
     to_csv(users_by_store, 'user')
     print('User Export Done')
