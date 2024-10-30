@@ -8,7 +8,7 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 from epcpy.epc_schemes import SGTIN, sgtin
 
-API_KEY = '##API_KEY_HERE##'
+API_KEY = 'aa124cfe-5e77-4c14-bb84-cb1a7d3dd7d2'
 HEADERS = {'Authorization': f'api-token {API_KEY}',
            'Content-Type': 'application/json'}
 START_DATE = (date.today() - timedelta(1)).strftime('%Y-%m-%d')  # Using yesterday's date, yyyy-MM-dd
@@ -31,22 +31,13 @@ KEY_LIST = {
     'store': ['externalId', 'storeId', 'storeName'],
     'user': ['id', 'externalId', 'username', 'email', 'firstName', 'lastName']}
 
-O_FILE_NAME_LIST = {'shopper': 'shopper.csv',
-                    'item': 'item.csv',
-                    'requests': 'requests.csv',
-                    'feedback': 'feedback.csv',
-                    'room': 'changingRoom.csv',
-                    'store': 'store.csv',
-                    'user': 'user.csv'}
-
-DEL_KEY_LIST = {'shopper': ['phoneNumber', 'engaged'],
-                'item': ['state'],
-                'requests': [],
-                'feedback': ['planningPurchase', 'email', 'dwellMilliseconds', 'message'],
-                'room': [],
-                'store': [],
-                'user': ['role', 'changingRoomGroupId', 'active', 'customerId', 'firstLogin', 'archived',
-                         'lastLoggedIn', 'allowedStores']}
+FILE_NAME_LIST = {'shopper': 'shopper.csv',
+                  'item': 'item.csv',
+                  'requests': 'requests.csv',
+                  'feedback': 'feedback.csv',
+                  'room': 'changingRoom.csv',
+                  'store': 'store.csv',
+                  'user': 'user.csv'}
 
 OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'room', 'user']
 
@@ -62,7 +53,9 @@ def get_stores(base_url):
     valid_stores = []
     for store in store_response['data']:
         if 'group' in store and store['group'] != 'DEMO' and store['group'] != 'TEST':
-            valid_stores.append(store)
+            valid_stores.append({'storeId': store['id'],
+                                 'externalId': store['externalId'],
+                                 'storeName': store['name']})
     return valid_stores
 
 
@@ -78,7 +71,7 @@ def get_stores(base_url):
 
 def get_store_name(store):
     if store is not None:
-        return store['name']
+        return store['storeName']
     return None
 
 
@@ -122,7 +115,7 @@ def has_more_fun(base_url, store_id, fun_name):
                                                                                SGTIN.BinaryCodingScheme.SGTIN_96,
                                                                                sgtin.SGTINFilterValue.POS_ITEM)}))
                     except Exception as e:  # Remove the try/except block when gs1/epc problem is fixed
-                        None
+                        pass
             if len(enhanced_shopper_items) != 0:
                 shoppers.extend(enhanced_shopper_items)
             else:
@@ -140,28 +133,13 @@ def has_more_fun(base_url, store_id, fun_name):
 """
 
 
-def to_csv(req_dict, fun_name):
+def to_csv(data_list, fun_name):
     keys = KEY_LIST[fun_name]
-    del_keys = DEL_KEY_LIST[fun_name]
-    o_file = O_FILE_NAME_LIST[fun_name]
-    flag = False
-    for k, v in req_dict.items():
-        if len(v) == 0:
-            continue
-        for items in v:
-            for col_name in keys:
-                if not col_name in items.keys():
-                    items[col_name] = None
-            for col_name in del_keys:
-                if col_name in items.keys():
-                    del items[col_name]
-            sorted_dict = {i: items[i] for i in keys}
-            df = pd.DataFrame.from_dict([sorted_dict])
-            if flag == False:
-                flag = True
-                df.to_csv(o_file, mode='w', header=True, index=False)
-            else:
-                df.to_csv(o_file, mode='a', header=False, index=False)
+    file_name = FILE_NAME_LIST[fun_name]
+
+    df = pd.DataFrame(data_list)
+
+    df[keys].to_csv(file_name, index=False)
 
 
 """
@@ -171,14 +149,15 @@ def to_csv(req_dict, fun_name):
 """
 
 
-def fetch_shopper(base_url, stores):
+def fetch_shoppers(base_url, stores):
     print(f'Starting Shopper Export')
-    shoppers_by_store = {}  # key = store_id, values = list of shoppers
+    all_shoppers = []
     for store in stores:
         print(f'Fetching shoppers for store {get_store_name(store)}')
-        shoppers = has_more_fun(base_url, store['id'], 'shopper')
-        shoppers_by_store[store['id']] = shoppers
-    to_csv(shoppers_by_store, 'shopper')
+        shoppers = has_more_fun(base_url, store['storeId'], 'shopper')
+        print(shoppers)
+        all_shoppers.extend(shoppers)
+    to_csv(all_shoppers, 'shopper')
     print('Shopper Export Done')
 
 
@@ -188,14 +167,14 @@ def fetch_shopper(base_url, stores):
 """
 
 
-def fetch_shopper_item(base_url, stores):
+def fetch_shopper_items(base_url, stores):
     print(f'Starting Shopper Item Export')
-    shopper_items_by_store = {}  # key = store_id, values = list of shopper items
+    all_shopper_items = []
     for store in stores:
         print(f'Fetching shopper_items for store {get_store_name(store)}')
-        shopper_items = has_more_fun(base_url, store['id'], 'item')
-        shopper_items_by_store[store['id']] = shopper_items
-    to_csv(shopper_items_by_store, 'item')
+        shopper_items = has_more_fun(base_url, store['storeId'], 'item')
+        all_shopper_items.extend(shopper_items)
+    to_csv(all_shopper_items, 'item')
     print(f'Shopper Item Export Done')
 
 
@@ -205,14 +184,14 @@ def fetch_shopper_item(base_url, stores):
 """
 
 
-def fetch_archive_request(base_url, stores):
+def fetch_requests(base_url, stores):
     print(f'Starting Requests Export')
-    requests_by_store = {}  # key = store_id, values = list of requests
+    all_requests = []
     for store in stores:
         print(f'Fetching requests for store {get_store_name(store)}')
-        shopper_requests = has_more_fun(base_url, store['id'], 'requests')
-        requests_by_store[store['id']] = shopper_requests
-    to_csv(requests_by_store, 'requests')
+        shopper_requests = has_more_fun(base_url, store['storeId'], 'requests')
+        all_requests.extend(shopper_requests)
+    to_csv(all_requests, 'requests')
     print(f'Requests Export Done')
 
 
@@ -222,45 +201,45 @@ def fetch_archive_request(base_url, stores):
 """
 
 
-def fetch_archive_feedback(base_url, stores):
+def fetch_feedback(base_url, stores):
     print(f'Starting Feedback Export')
-    feedback_by_store = {}  # key = store_id, values = list of feedback
+    all_feedback = []  # key = store_id, values = list of feedback
     for store in stores:
         print(f'Fetching feedback for store {get_store_name(store)}')
-        feedback = has_more_fun(base_url, store['id'], 'feedback')
-        feedback_by_store[store['id']] = feedback
-    to_csv(feedback_by_store, 'feedback')
+        feedback = has_more_fun(base_url, store['storeId'], 'feedback')
+        all_feedback.extend(feedback)
+    to_csv(all_feedback, 'feedback')
     print(f'Feedback Export Done')
 
 
 def fetch_changing_rooms(base_url, stores):
     print(f'Starting Changing Room Export')
-    changing_rooms_by_store = {}
+    all_rooms = []
+
     for store in stores:
         print(f'Fetching changing rooms for store {get_store_name(store)}')
-        areas = requests.get(f'{base_url}/changingRoomGroup/store/{store["id"]}', headers=HEADERS).json()['data']
-        all_rooms = []
+        areas = requests.get(f'{base_url}/changingRoomGroup/store/{store["storeId"]}', headers=HEADERS).json()['data']
         for area in areas:
             for room in area['changingRooms']:
-                room_view = {'storeId': store['id'],
+                room_view = {'storeId': store['storeId'],
                              'areaId': area['changingRoomGroup']['id'],
                              'roomId': room['id'],
                              'areaName': area['changingRoomGroup']['name'],
                              'roomName': room['name']}
                 all_rooms.append(room_view)
-        changing_rooms_by_store[store['id']] = all_rooms
-    to_csv(changing_rooms_by_store, 'room')
+
+    to_csv(all_rooms, 'room')
     print('Changing Room Export Done')
 
 
 def fetch_users(base_url, stores):
     print(f'Starting User Export')
-    users_by_store = {}
+    all_users = []
     for store in stores:
         print(f'Fetching users for store {get_store_name(store)}')
-        users = requests.get(f'{base_url}/user', headers=HEADERS, params={'storeId': store["id"]}).json()['data']
-        users_by_store[store['id']] = users
-    to_csv(users_by_store, 'user')
+        users = requests.get(f'{base_url}/user', headers=HEADERS, params={'storeId': store["storeId"]}).json()['data']
+        all_users.extend(users)
+    to_csv(all_users, 'user')
     print('User Export Done')
 
 
@@ -279,10 +258,7 @@ if __name__ == '__main__':
             print(f'Selected Region: {selected_region}')
             region_url = REGION_LOOKUP[selected_region]
             selected_stores = get_stores(region_url)
-            store_lookup = {store['id']: [{'storeId': store['id'],
-                                           'externalId': store['externalId'],
-                                           'storeName': store['name']}] for store in selected_stores}
-            to_csv(store_lookup, 'store')
+            to_csv(selected_stores, 'store')
             print(f'Fetching data for stores: {list(map(get_store_name, selected_stores))}')
 
             flag_first = True
@@ -307,13 +283,13 @@ if __name__ == '__main__':
                             flag_first = False
                             break
                 if sys.argv[i] == 'shopper':
-                    fetch_shopper(region_url, selected_stores)
+                    fetch_shoppers(region_url, selected_stores)
                 elif sys.argv[i] == 'item':
-                    fetch_shopper_item(region_url, selected_stores)
+                    fetch_shopper_items(region_url, selected_stores)
                 elif sys.argv[i] == 'requests':
-                    fetch_archive_request(region_url, selected_stores)
+                    fetch_requests(region_url, selected_stores)
                 elif sys.argv[i] == 'feedback':
-                    fetch_archive_feedback(region_url, selected_stores)
+                    fetch_feedback(region_url, selected_stores)
                 elif sys.argv[i] == 'room':
                     fetch_changing_rooms(region_url, selected_stores)
                 elif sys.argv[i] == 'user':
@@ -321,5 +297,5 @@ if __name__ == '__main__':
                 else:
                     print('''
                     Not a valid argument
-                    Valid arguments are: shopper, item, requests, feedback
+                    Valid arguments are: shopper, item, requests, feedback, room, user
                     If you want to specify a date please enter the date first and then the requests''')
