@@ -8,7 +8,7 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 from epcpy.epc_schemes import SGTIN, sgtin
 
-API_KEY = 'aa124cfe-5e77-4c14-bb84-cb1a7d3dd7d2'
+API_KEY = '##API-KEY-HERE##'
 HEADERS = {'Authorization': f'api-token {API_KEY}',
            'Content-Type': 'application/json'}
 START_DATE = (date.today() - timedelta(1)).strftime('%Y-%m-%d')  # Using yesterday's date, yyyy-MM-dd
@@ -16,7 +16,7 @@ START_DATE = (date.today() - timedelta(1)).strftime('%Y-%m-%d')  # Using yesterd
 BASE_URL_LIST = {'shopper': '/v2/archive/shopper',
                  'item': '/v2/archive/shopper_item',
                  'requests': '/v2/archive/request',
-                 'feedback': '/v2/archive/feedback'}  # The different API URLS
+                 'feedback': '/v2/archive/feedback'}
 
 KEY_LIST = {
     'shopper': ['id', 'name', 'storeId', 'createdAt', 'itemCount', 'deletedAt', 'dwellMilliseconds', 'shopperId',
@@ -97,7 +97,7 @@ def get_response(url, store_id, next_cursor):
 def has_more_fun(base_url, store_id, fun_name):
     has_more = True
     next_cursor = None
-    shoppers = []
+    values = []
     while has_more:
         BASE_URL = base_url + BASE_URL_LIST[fun_name]
         response = get_response(BASE_URL, store_id, next_cursor)
@@ -116,13 +116,14 @@ def has_more_fun(base_url, store_id, fun_name):
                                                                                sgtin.SGTINFilterValue.POS_ITEM)}))
                     except Exception as e:  # Remove the try/except block when gs1/epc problem is fixed
                         pass
+
             if len(enhanced_shopper_items) != 0:
-                shoppers.extend(enhanced_shopper_items)
+                values.extend(enhanced_shopper_items)
             else:
-                shoppers.extend(response['data']['values'])
+                values.extend(response['data']['values'])
             next_cursor = response['data']['next']
             has_more = response['data']['hasMore']
-    return shoppers
+    return values
 
 
 """
@@ -137,7 +138,9 @@ def to_csv(data_list, fun_name):
     keys = KEY_LIST[fun_name]
     file_name = FILE_NAME_LIST[fun_name]
 
-    df = pd.DataFrame(data_list)
+    # initialize dataframe with all columns because null values don't appear in data when fetched
+    df = pd.DataFrame(columns=keys)
+    df = pd.concat([df, pd.DataFrame(data_list)])
 
     df[keys].to_csv(file_name, index=False)
 
@@ -155,7 +158,6 @@ def fetch_shoppers(base_url, stores):
     for store in stores:
         print(f'Fetching shoppers for store {get_store_name(store)}')
         shoppers = has_more_fun(base_url, store['storeId'], 'shopper')
-        print(shoppers)
         all_shoppers.extend(shoppers)
     to_csv(all_shoppers, 'shopper')
     print('Shopper Export Done')
