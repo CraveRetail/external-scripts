@@ -142,6 +142,12 @@ def to_csv(data_list, fun_name):
     df = pd.DataFrame(columns=keys)
     df = pd.concat([df, pd.DataFrame(data_list)])
 
+    # convert floats to dtype Int64 (to handle nulls) to remove floating points
+    for column in df.columns:
+        print(column)
+        if df[column].dtype == 'float64' and column != 'price':
+            df[column] = df[column].astype('Int64')
+
     df[keys].to_csv(file_name, index=False)
 
 
