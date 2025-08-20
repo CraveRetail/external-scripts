@@ -1,14 +1,20 @@
 # Requires epcpy module for EPC decoding - pip install epcpy
 # Requires requests module for HTTP requests - pip install requests
 
-import requests
 import sys
-import pandas as pd
-
+import os
 from datetime import datetime, timedelta, date
+
+import pandas as pd
+import requests
 from epcpy.epc_schemes import SGTIN, sgtin
 
-API_KEY = '##API-KEY-HERE##'
+
+API_KEY = '' #Define API key in here or set in environment variable as CRAVE_API_KEY
+
+if not API_KEY:
+    API_KEY = os.environ.get('CRAVE_API_KEY')
+
 HEADERS = {'Authorization': f'api-token {API_KEY}',
            'Content-Type': 'application/json'}
 START_DATE = (date.today() - timedelta(1)).strftime('%Y-%m-%d')  # Using yesterday's date, yyyy-MM-dd
