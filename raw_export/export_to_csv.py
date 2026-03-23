@@ -31,7 +31,7 @@ KEY_LIST = {
              'productId', 'serial', 'title', 'size', 'category', 'color', 'epc'],
     'requests': ['id', 'status', 'createdBy', 'storeId', 'changingRoomId', 'assignedUserId', 'sku', 'createdAt',
                  'assignedAt', 'completedAt', 'size', 'color', 'price', 'timeTaken', 'type', 'itemId', 'productId',
-                 "originalRequestId", 'title', 'category'],
+                 "originalRequestId", 'title', 'category', 'size2', 'origin'],
     'feedback': ['id', 'shopperName', 'rating', 'storeId', 'deviceRating', 'createdAt'],
     'room': ['storeId', 'areaId', 'roomId', 'areaName', 'roomName'],
     'store': ['externalId', 'storeId', 'storeName'],
