@@ -28,7 +28,7 @@ KEY_LIST = {
     'shopper': ['id', 'name', 'storeId', 'createdAt', 'itemCount', 'deletedAt', 'dwellMilliseconds', 'shopperId',
                 'type', 'associateId', 'changingRoomId'],
     'item': ['id', 'shopperArchiveId', 'sku', 'price', 'storeId', 'createdAt', 'itemId',
-             'productId', 'serial', 'title', 'size', 'category', 'color', 'epc'],
+             'productId', 'serial', 'title', 'size', 'size2', 'category', 'color', 'epc', 'rfidStatus'],
     'requests': ['id', 'status', 'createdBy', 'storeId', 'changingRoomId', 'assignedUserId', 'sku', 'createdAt',
                  'assignedAt', 'completedAt', 'size', 'color', 'price', 'timeTaken', 'type', 'itemId', 'productId',
                  "originalRequestId", 'title', 'category', 'size2', 'origin'],
