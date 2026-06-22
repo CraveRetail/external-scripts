@@ -22,7 +22,9 @@ START_DATE = (date.today() - timedelta(1)).strftime('%Y-%m-%d')  # Using yesterd
 BASE_URL_LIST = {'shopper': '/v2/archive/shopper',
                  'item': '/v2/archive/shopper_item',
                  'requests': '/v2/archive/request',
-                 'feedback': '/v2/archive/feedback'}
+                 'feedback': '/v2/archive/feedback',
+                 'suspicious_activity_alert': '/v2/archive/suspicious_activity_alert',
+                 'suspicious_activity': '/v2/archive/suspicious_activity'}
 
 KEY_LIST = {
     'shopper': ['id', 'name', 'storeId', 'createdAt', 'itemCount', 'deletedAt', 'dwellMilliseconds', 'shopperId',
@@ -33,6 +35,10 @@ KEY_LIST = {
                  'assignedAt', 'completedAt', 'size', 'color', 'price', 'timeTaken', 'type', 'itemId', 'productId',
                  "originalRequestId", 'title', 'category', 'size2', 'origin'],
     'feedback': ['id', 'shopperName', 'rating', 'storeId', 'deviceRating', 'createdAt'],
+    'suspicious_activity_alert': ['id', 'changingRoomId', 'shopperArchiveId', 'storeId', 'score', 'assignedUserId',
+                                  'status', 'createdAt', 'completedAt', 'archivedAt'],
+    'suspicious_activity': ['id', 'suspiciousActivityAlertArchiveId', 'type', 'score', 'count', 'createdAt',
+                            'archivedAt', 'changingRoomId', 'shopperArchiveId', 'storeId', 'note'],
     'room': ['storeId', 'areaId', 'roomId', 'areaName', 'roomName'],
     'store': ['externalId', 'storeId', 'storeName'],
     'user': ['id', 'externalId', 'username', 'email', 'firstName', 'lastName']}
@@ -41,11 +47,14 @@ FILE_NAME_LIST = {'shopper': 'shopper.csv',
                   'item': 'item.csv',
                   'requests': 'requests.csv',
                   'feedback': 'feedback.csv',
+                  'suspicious_activity_alert': 'suspicious_activity_alert.csv',
+                  'suspicious_activity': 'suspicious_activity.csv',
                   'room': 'changingRoom.csv',
                   'store': 'store.csv',
                   'user': 'user.csv'}
 
-OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'room', 'user']
+OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'suspicious_activity_alert', 'suspicious_activity', 'room',
+               'user']
 
 REGION_LOOKUP = {
     'na': 'https://na.crave-cloud.com',
@@ -226,6 +235,28 @@ def fetch_feedback(base_url, stores):
     print(f'Feedback Export Done')
 
 
+def fetch_suspicious_activity_alerts(base_url, stores):
+    print(f'Starting Suspicious Activity Alert Export')
+    all_alerts = []
+    for store in stores:
+        print(f'Fetching suspicious activity alerts for store {get_store_name(store)}')
+        alerts = has_more_fun(base_url, store['storeId'], 'suspicious_activity_alert')
+        all_alerts.extend(alerts)
+    to_csv(all_alerts, 'suspicious_activity_alert')
+    print(f'Suspicious Activity Alert Export Done')
+
+
+def fetch_suspicious_activities(base_url, stores):
+    print(f'Starting Suspicious Activity Export')
+    all_activities = []
+    for store in stores:
+        print(f'Fetching suspicious activities for store {get_store_name(store)}')
+        activities = has_more_fun(base_url, store['storeId'], 'suspicious_activity')
+        all_activities.extend(activities)
+    to_csv(all_activities, 'suspicious_activity')
+    print(f'Suspicious Activity Export Done')
+
+
 def fetch_changing_rooms(base_url, stores):
     print(f'Starting Changing Room Export')
     all_rooms = []
@@ -304,6 +335,10 @@ if __name__ == '__main__':
                     fetch_requests(region_url, selected_stores)
                 elif sys.argv[i] == 'feedback':
                     fetch_feedback(region_url, selected_stores)
+                elif sys.argv[i] == 'suspicious_activity_alert':
+                    fetch_suspicious_activity_alerts(region_url, selected_stores)
+                elif sys.argv[i] == 'suspicious_activity':
+                    fetch_suspicious_activities(region_url, selected_stores)
                 elif sys.argv[i] == 'room':
                     fetch_changing_rooms(region_url, selected_stores)
                 elif sys.argv[i] == 'user':
@@ -311,5 +346,5 @@ if __name__ == '__main__':
                 else:
                     print('''
                     Not a valid argument
-                    Valid arguments are: shopper, item, requests, feedback, room, user
+                    Valid arguments are: shopper, item, requests, feedback, suspicious_activity_alert, suspicious_activity, room, user
                     If you want to specify a date please enter the date first and then the requests''')
