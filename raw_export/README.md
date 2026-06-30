@@ -14,7 +14,7 @@ The Region must be one of `na` `eu` `china`
 
 The Date must be in yyyy-mm-dd format.
 
-The available data to fetch are `shopper` `item` `requests` `feedback` `suspicious_activity_alert` `suspicious_activity` `room` `user`
+The available data to fetch are `shopper` `item` `requests` `feedback` `suspicious_activity_alert` `suspicious_activity` `continuous_rfid_reads` `room` `user`
  
 Sample Call
-``` python export_to_csv.py eu 2023-07-01 shopper item requests feedback suspicious_activity_alert suspicious_activity room user```
+``` python export_to_csv.py eu 2023-07-01 shopper item requests feedback suspicious_activity_alert suspicious_activity continuous_rfid_reads room user```

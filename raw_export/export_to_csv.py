@@ -24,7 +24,8 @@ BASE_URL_LIST = {'shopper': '/v2/archive/shopper',
                  'requests': '/v2/archive/request',
                  'feedback': '/v2/archive/feedback',
                  'suspicious_activity_alert': '/v2/archive/suspicious_activity_alert',
-                 'suspicious_activity': '/v2/archive/suspicious_activity'}
+                 'suspicious_activity': '/v2/archive/suspicious_activity',
+                 'continuous_rfid_reads': '/v2/archive/continuous_rfid_reads'}
 
 KEY_LIST = {
     'shopper': ['id', 'name', 'storeId', 'createdAt', 'itemCount', 'deletedAt', 'dwellMilliseconds', 'shopperId',
@@ -39,6 +40,8 @@ KEY_LIST = {
                                   'status', 'createdAt', 'completedAt', 'archivedAt'],
     'suspicious_activity': ['id', 'suspiciousActivityAlertArchiveId', 'type', 'createdAt',
                             'archivedAt', 'changingRoomId', 'shopperArchiveId', 'storeId', 'note'],
+    'continuous_rfid_reads': ['id', 'storeId', 'changingRoomId', 'sourceType', 'epc', 'skuId', 'firstSeenAt',
+                              'lastSeenAt', 'createdAt'],
     'room': ['storeId', 'areaId', 'roomId', 'areaName', 'roomName'],
     'store': ['externalId', 'storeId', 'storeName'],
     'user': ['id', 'externalId', 'username', 'email', 'firstName', 'lastName']}
@@ -49,12 +52,13 @@ FILE_NAME_LIST = {'shopper': 'shopper.csv',
                   'feedback': 'feedback.csv',
                   'suspicious_activity_alert': 'suspicious_activity_alert.csv',
                   'suspicious_activity': 'suspicious_activity.csv',
+                  'continuous_rfid_reads': 'continuous_rfid_reads.csv',
                   'room': 'changingRoom.csv',
                   'store': 'store.csv',
                   'user': 'user.csv'}
 
-OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'suspicious_activity_alert', 'suspicious_activity', 'room',
-               'user']
+OPTION_MENU = ['shopper', 'item', 'requests', 'feedback', 'suspicious_activity_alert', 'suspicious_activity',
+               'continuous_rfid_reads', 'room', 'user']
 
 REGION_LOOKUP = {
     'na': 'https://na.crave-cloud.com',
@@ -257,6 +261,17 @@ def fetch_suspicious_activities(base_url, stores):
     print(f'Suspicious Activity Export Done')
 
 
+def fetch_continuous_rfid_reads(base_url, stores):
+    print(f'Starting Continuous RFID Reads Export')
+    all_reads = []
+    for store in stores:
+        print(f'Fetching continuous RFID reads for store {get_store_name(store)}')
+        reads = has_more_fun(base_url, store['storeId'], 'continuous_rfid_reads')
+        all_reads.extend(reads)
+    to_csv(all_reads, 'continuous_rfid_reads')
+    print(f'Continuous RFID Reads Export Done')
+
+
 def fetch_changing_rooms(base_url, stores):
     print(f'Starting Changing Room Export')
     all_rooms = []
@@ -339,6 +354,8 @@ if __name__ == '__main__':
                     fetch_suspicious_activity_alerts(region_url, selected_stores)
                 elif sys.argv[i] == 'suspicious_activity':
                     fetch_suspicious_activities(region_url, selected_stores)
+                elif sys.argv[i] == 'continuous_rfid_reads':
+                    fetch_continuous_rfid_reads(region_url, selected_stores)
                 elif sys.argv[i] == 'room':
                     fetch_changing_rooms(region_url, selected_stores)
                 elif sys.argv[i] == 'user':
@@ -346,5 +363,5 @@ if __name__ == '__main__':
                 else:
                     print('''
                     Not a valid argument
-                    Valid arguments are: shopper, item, requests, feedback, suspicious_activity_alert, suspicious_activity, room, user
+                    Valid arguments are: shopper, item, requests, feedback, suspicious_activity_alert, suspicious_activity, continuous_rfid_reads, room, user
                     If you want to specify a date please enter the date first and then the requests''')
